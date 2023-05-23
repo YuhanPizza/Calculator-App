@@ -90,12 +90,12 @@ public class Calculation {
             } else if (isOperator(element)) { //checks if the element is an operator
                 char operator = element.charAt(0); // gets the operator charcter
                 // checks for  higher precedence
-                while (!operatorStack.isEmpty() && hasPrecedence(operator, operatorStack.peek())) {
-                    int operand2 = operandStack.pop();
-                    int operand1 = operandStack.pop();
-                    char op = operatorStack.pop();
-                    int result = applyOperator(operand1, operand2, op);
-                    operandStack.push(result);
+                while (!operatorStack.isEmpty() && hasPrecedence(operator, operatorStack.peek())) { //loops if there are still operators and if the
+                    int operand2 = operandStack.pop(); //retrieve the 2nd operand                  //current operator has highier presidence than the one at the top of the stack
+                    int operand1 = operandStack.pop();//retrieve the 1st operand
+                    char op = operatorStack.pop(); //retrieve operator
+                    int result = applyOperator(operand1, operand2, op); //calls for applyOperator Function
+                    operandStack.push(result); //pushes the calculated result back into the operand stack
                 }
 
                 operatorStack.push(operator); //pushes the operator to the stack
