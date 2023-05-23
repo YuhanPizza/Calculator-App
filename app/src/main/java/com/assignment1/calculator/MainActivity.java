@@ -5,7 +5,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.webkit.ValueCallback;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -14,26 +13,29 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private EditText editTextInput;
-    private TextView textHistory;
-    private Button historyButton;
-    private StringBuilder calculationBuilder;
-    private boolean historyMode = false;
-    private List<String> operationHistory;
+    private EditText editTextInput; //edit TEXT VIEW FOR USER INPUT
+    private TextView textHistory; //textview to display history
+    private Button historyButton; //button toggling for history mode
+    private StringBuilder calculationBuilder; //calculation text
+    private boolean historyMode = false; //initial setting of history mode = standard
+    private List<String> operationHistory; //operation history
+    private Calculation calculator; //calculation class
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        super.onCreate(savedInstanceState); //super is base basically so parent oncreate function call
+        setContentView(R.layout.activity_main); // sets the content view of the activity
 
-        editTextInput = findViewById(R.id.editTextInput);
-        textHistory = findViewById(R.id.textHistory);
 
-        calculationBuilder = new StringBuilder();
-        operationHistory = new ArrayList<>();
+        editTextInput = findViewById(R.id.editTextInput); // find the EditText view with the editTextInput id and assign it to the editTextInput variable
+        textHistory = findViewById(R.id.textHistory); //find the textView view by id textHistory assign it to textHistory variable
 
-        // Set click listeners for all buttons
-        setButtonClickListener(R.id.button_0);
+        calculationBuilder = new StringBuilder(); //create a new string builder to build the calculation text
+        operationHistory = new ArrayList<>(); //create a new array list instance to store history
+        calculator = new Calculation(); //creates an instance of calculation class
+
+        //listeners for all buttons
+        setButtonClickListener(R.id.button_0); // Numeric Digits
         setButtonClickListener(R.id.button_1);
         setButtonClickListener(R.id.button_2);
         setButtonClickListener(R.id.button_3);
@@ -43,160 +45,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setButtonClickListener(R.id.button_7);
         setButtonClickListener(R.id.button_8);
         setButtonClickListener(R.id.button_9);
-        setButtonClickListener(R.id.button_plus);
-        setButtonClickListener(R.id.button_minus);
-        setButtonClickListener(R.id.button_multiply);
-        setButtonClickListener(R.id.button_divide);
-        setButtonClickListener(R.id.button_equals);
-        setButtonClickListener(R.id.button_c);
-        setButtonClickListener(R.id.button_Mode);
+        setButtonClickListener(R.id.button_plus); // +
+        setButtonClickListener(R.id.button_minus); // -
+        setButtonClickListener(R.id.button_multiply); // *
+        setButtonClickListener(R.id.button_divide); // /
+        setButtonClickListener(R.id.button_equals); // =
+        setButtonClickListener(R.id.button_c); // clear
+        setButtonClickListener(R.id.button_Mode); //history
 
-        historyButton = findViewById(R.id.button_Mode);
-        setHistoryButtonText();
+        historyButton = findViewById(R.id.button_Mode); //History Button
+        setHistoryButtonText(); //display for the history button
     }
-    private void setHistoryButtonText() {
+
+    private void setHistoryButtonText() { //display for the button itself
         if (historyMode) {
-            historyButton.setText("Advance - With History Mode");
+            historyButton.setText("Advance - With History Mode"); //ON
         } else {
-            historyButton.setText("Standard - No History Mode");
+            historyButton.setText("Standard - No History Mode"); //OFF
         }
     }
 
     private void setButtonClickListener(int buttonId) {
-        Button button = findViewById(buttonId);
-        button.setOnClickListener(this);
+        Button button = findViewById(buttonId); //find the button view based on the buttonId
+        button.setOnClickListener(this); //sets the click listiner for the buttton on current activity
     }
 
     @Override
     public void onClick(View view) {
         Button button = (Button) view;
         String buttonText = button.getText().toString();
-        if(button.getId() == R.id.button_Mode){
-            if (!historyMode){
+        if (button.getId() == R.id.button_Mode) { //changes modes if history mode is clicked
+            if (!historyMode) {
                 historyMode = true;
                 setHistoryButtonText();
-            }else {
+            } else {
                 historyMode = false;
                 setHistoryButtonText();
             }
         }
-        if (button.getId() == R.id.button_equals) {
-            calculateResult();
-        } else if (button.getId() == R.id.button_c) {
-            clearInput();
-        } else if(button.getId()!= R.id.button_Mode) {
-            appendToInput(buttonText);
+        if (button.getId() == R.id.button_equals) { //if "=" is pressed
+            String input = editTextInput.getText().toString();
+            calculator.evaluateExpression(input, operationHistory, historyMode, calculationBuilder, editTextInput, textHistory);
+        } else if (button.getId() == R.id.button_c) { //if clear is pressed
+            calculator.clearInput(calculationBuilder, editTextInput);
+        } else if (button.getId() != R.id.button_Mode) { //if history mode is not clicked
+            calculator.appendToInput(buttonText, calculationBuilder, editTextInput); //basically just UI element
         }
-    }
-
-    private void appendToInput(String text) {
-        calculationBuilder.append(text);
-        editTextInput.setText(calculationBuilder.toString());
-    }
-
-    private void calculateResult() {
-        String input = editTextInput.getText().toString();
-
-        // Check if the input is not empty
-        if (!input.isEmpty()) {
-            if(hasInvalidOperators(input)){
-                editTextInput.setText("Invalid Operator");
-                return;
-            }
-            try {
-                // Evaluate the expression using built-in JavaScript engine
-                String result = performOperation(input);
-
-                // Clear the calculation builder and display the result
-                calculationBuilder.setLength(0);
-                calculationBuilder.append(result);
-                editTextInput.setText(calculationBuilder.toString());
-                if(historyMode) {
-                    operationHistory.add(input + '=' + result);
-                }
-                displayHistory();
-            } catch (Exception e) {
-                // Handle any error that occurs during the evaluation
-                editTextInput.setText("Invalid Operation");
-            }
-        }
-    }
-
-    private String performOperation(String expression) {
-        // Remove any spaces from the expression
-        expression = expression.replaceAll("\\s", "");
-
-        // Initialize the result to the first operand
-        int result = 0;
-        int currentOperand = 0;
-        char lastOperator = '+';
-
-        // Process each character in the expression
-        for (int i = 0; i < expression.length(); i++) {
-            char ch = expression.charAt(i);
-
-            if (Character.isDigit(ch)) {
-                // Build the current operand by appending digits
-                currentOperand = (currentOperand * 10) + (ch - '0');
-            } else {
-                // Apply the last operator to the result and current operand
-                result = applyOperator(result, currentOperand, lastOperator);
-
-                // Reset the current operand and update the last operator
-                currentOperand = 0;
-                lastOperator = ch;
-            }
-        }
-
-        // Apply the last operator to the result and final operand
-        result = applyOperator(result, currentOperand, lastOperator);
-
-        // Convert the result to a string
-        String answer = String.valueOf(result);
-        return answer;
-    }
-
-    private int applyOperator(int operand1, int operand2, char operator) {
-        switch (operator) {
-            case '+':
-                return operand1 + operand2;
-            case '-':
-                return operand1 - operand2;
-            case '*':
-                return operand1 * operand2;
-            case '/':
-                return operand1 / operand2;
-            default:
-                return 0;
-        }
-    }
-    private boolean hasInvalidOperators(String input) {
-        char lastChar = input.charAt(input.length() - 1);
-        for (int i = 1; i < input.length(); i++) {
-            char currentChar = input.charAt(i);
-            char previousChar = input.charAt(i - 1);
-            if ((isOperator(lastChar) && !Character.isDigit(previousChar)) || (isOperator(currentChar) && isOperator(previousChar))) {
-                return true;
-            }
-        }
-        return false;
-    }
-    private boolean isOperator(char ch) {
-        return ch == '+' || ch == '-' || ch == '*' || ch == '/';
-    }
-    private void displayHistory() {
-        if (historyMode) {
-            StringBuilder stringBuilder = new StringBuilder();
-
-            for (String operation : operationHistory) {
-                stringBuilder.append(operation).append("\n");
-            }
-
-            textHistory.setText(stringBuilder.toString());
-        }
-    }
-    private void clearInput() {
-        calculationBuilder.setLength(0);
-        editTextInput.setText("");
     }
 }
